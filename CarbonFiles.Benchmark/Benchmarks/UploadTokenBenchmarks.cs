@@ -1,4 +1,3 @@
-using CarbonFiles.Client;
 using CarbonFiles.Client.Models;
 
 namespace CarbonFiles.Benchmark.Benchmarks;
@@ -25,17 +24,17 @@ public static class UploadTokenBenchmarks
                 token = resp.Token;
             });
 
-            // Upload using token
+            // Upload using the token via the uploadToken parameter
             if (token != null)
             {
-                var tokenClient = new CarbonFilesClient(ctx.BaseUrl, token);
                 var data = new byte[4096];
                 Random.Shared.NextBytes(data);
+                var capturedToken = token;
 
                 await ctx.MeasureAsync(Category, "Upload with Token", async () =>
                 {
-                    await tokenClient.Buckets[bucket.Id].Files
-                        .UploadAsync(data, $"token-{Guid.NewGuid():N}.bin");
+                    await ctx.Client.Buckets[bucket.Id].Files
+                        .UploadAsync(data, $"token-{Guid.NewGuid():N}.bin", uploadToken: capturedToken);
                 });
             }
         }
