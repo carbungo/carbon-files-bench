@@ -34,6 +34,15 @@ internal sealed class BenchmarkSettings : CommandSettings
     [DefaultValue(100)]
     public int MaxUploadMb { get; init; } = 100;
 
+    [CommandOption("--output <PATH>")]
+    [Description("Save results to a Markdown file (e.g. report.md)")]
+    public string? Output { get; init; }
+
+    [CommandOption("--quiet")]
+    [Description("Suppress console output (use with --output to only write the file)")]
+    [DefaultValue(false)]
+    public bool Quiet { get; init; }
+
     [CommandOption("--category <CATEGORY>")]
     [Description("Run only a specific category (e.g. Health, Buckets, Files, Large Transfers)")]
     public string? Category { get; init; }
@@ -59,8 +68,11 @@ internal sealed class BenchmarkCommand : AsyncCommand<BenchmarkSettings>
     public override async Task<int> ExecuteAsync(CommandContext commandContext, BenchmarkSettings settings)
     {
         var url = settings.Url.TrimEnd('/');
+        var startedAt = DateTime.UtcNow;
+        var quiet = settings.Quiet;
 
-        SpectreRenderer.RenderHeader(url);
+        if (!quiet)
+            SpectreRenderer.RenderHeader(url);
 
         var client = new CarbonFilesClient(url, settings.Key);
 
@@ -76,14 +88,12 @@ internal sealed class BenchmarkCommand : AsyncCommand<BenchmarkSettings>
         // Connectivity check
         try
         {
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Checking connectivity...", async _ =>
-                {
-                    await client.Health.CheckAsync();
-                });
-            AnsiConsole.MarkupLine("[green]Connected successfully.[/]");
-            AnsiConsole.WriteLine();
+            await client.Health.CheckAsync();
+            if (!quiet)
+            {
+                AnsiConsole.MarkupLine("[green]Connected successfully.[/]");
+                AnsiConsole.WriteLine();
+            }
         }
         catch (Exception ex)
         {
@@ -110,43 +120,67 @@ internal sealed class BenchmarkCommand : AsyncCommand<BenchmarkSettings>
 
         foreach (var (name, run) in benchmarkList)
         {
-            SpectreRenderer.RenderCategoryHeader(name);
+            if (!quiet)
+                SpectreRenderer.RenderCategoryHeader(name);
 
-            await AnsiConsole.Status()
-                .Spinner(Spinner.Known.Dots)
-                .SpinnerStyle(Style.Parse("cyan"))
-                .StartAsync($"Running {name} benchmarks...", async _ =>
-                {
-                    try
-                    {
-                        await run(ctx);
-                    }
-                    catch (Exception ex)
-                    {
-                        ctx.Results.Add(new BenchmarkResult
-                        {
-                            Category = name,
-                            Operation = $"[Category Error]",
-                            Success = false,
-                            Error = ex.Message,
-                        });
-                    }
-                });
-
-            // Render results for this category immediately
-            var categoryResults = ctx.Results.Where(r => r.Category == name).ToList();
-            if (categoryResults.Count > 0)
+            async Task RunBenchmark()
             {
-                var passed = categoryResults.Count(r => r.Success);
-                var total = categoryResults.Count;
-                AnsiConsole.MarkupLine(
-                    $"  [grey]{passed}/{total} passed[/]");
+                try
+                {
+                    await run(ctx);
+                }
+                catch (Exception ex)
+                {
+                    ctx.Results.Add(new BenchmarkResult
+                    {
+                        Category = name,
+                        Operation = "[Category Error]",
+                        Success = false,
+                        Error = ex.Message,
+                    });
+                }
+            }
+
+            if (quiet)
+            {
+                await RunBenchmark();
+            }
+            else
+            {
+                await AnsiConsole.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .SpinnerStyle(Style.Parse("cyan"))
+                    .StartAsync($"Running {name} benchmarks...", async _ => await RunBenchmark());
+
+                var categoryResults = ctx.Results.Where(r => r.Category == name).ToList();
+                if (categoryResults.Count > 0)
+                {
+                    var passed = categoryResults.Count(r => r.Success);
+                    var total = categoryResults.Count;
+                    AnsiConsole.MarkupLine($"  [grey]{passed}/{total} passed[/]");
+                }
             }
         }
 
-        // Final report
-        SpectreRenderer.RenderResults(ctx.Results);
-        SpectreRenderer.RenderScorecard(ctx.Results);
+        // Console report
+        if (!quiet)
+        {
+            SpectreRenderer.RenderResults(ctx.Results);
+            SpectreRenderer.RenderScorecard(ctx.Results);
+        }
+
+        // Markdown report
+        if (!string.IsNullOrEmpty(settings.Output))
+        {
+            var md = MarkdownRenderer.Render(url, startedAt, ctx.Results);
+            var outputPath = Path.GetFullPath(settings.Output);
+            await File.WriteAllTextAsync(outputPath, md);
+
+            if (!quiet)
+                AnsiConsole.MarkupLine($"\n[green]Report saved to[/] [bold]{outputPath.EscapeMarkup()}[/]");
+            else
+                Console.WriteLine($"Report saved to {outputPath}");
+        }
 
         return ctx.Results.Any(r => !r.Success) ? 1 : 0;
     }

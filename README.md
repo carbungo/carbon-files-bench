@@ -30,6 +30,12 @@ dotnet run -- --url https://your-server.com --key your-key --max-upload-mb 500
 
 # Test large transfers only
 dotnet run -- --url https://your-server.com --key your-key --category "Large Transfers" --max-upload-mb 250
+
+# Save results to a Markdown report (console + file)
+dotnet run -- --url https://your-server.com --key your-key --output report.md
+
+# Markdown report only, no console output
+dotnet run -- --url https://your-server.com --key your-key --output report.md --quiet
 ```
 
 ## Benchmark Categories
@@ -59,6 +65,8 @@ Each operation reports:
 
 A final scorecard shows global percentiles and lists any failures.
 
+Results can be output to the **console** (Spectre.Console tables), a **Markdown file** (`--output`), or **both**. Use `--quiet` with `--output` to skip console output entirely.
+
 The process exits with code `0` if all benchmarks pass, `1` if any fail.
 
 ## Project Structure
@@ -82,5 +90,7 @@ CarbonFiles.Benchmark/
 │   ├── ConcurrencyBenchmarks.cs
 │   └── SignalRBenchmarks.cs
 └── Rendering/
+    ├── Formatting.cs           # Shared formatting helpers
+    ├── MarkdownRenderer.cs     # Markdown report generator
     └── SpectreRenderer.cs      # Spectre.Console table rendering
 ```

@@ -59,7 +59,7 @@ public static class SpectreRenderer
             var categoryResults = results.Where(r => r.Category == category).ToList();
             foreach (var r in categoryResults)
             {
-                var status = r.Success ? "[green]PASS[/]" : $"[red]FAIL[/]";
+                var status = r.Success ? "[green]PASS[/]" : "[red]FAIL[/]";
 
                 if (!r.Success)
                 {
@@ -72,17 +72,17 @@ public static class SpectreRenderer
                 }
 
                 var sorted = r.LatenciesMs;
-                var hasTimings = sorted.Count > 0;
+                var has = sorted.Count > 0;
 
                 table.AddRow(
                     r.Operation.EscapeMarkup(),
-                    hasTimings ? FormatMs(Statistics.Min(sorted)) : "-",
-                    hasTimings ? FormatMs(Statistics.Median(sorted)) : "-",
-                    hasTimings ? FormatMs(Statistics.P95(sorted)) : "-",
-                    hasTimings ? FormatMs(Statistics.P99(sorted)) : "-",
-                    hasTimings ? FormatMs(Statistics.Max(sorted)) : "-",
-                    hasTimings ? FormatOps(Statistics.OpsPerSec(sorted)) : "-",
-                    r.ThroughputMbPerSec.HasValue ? $"{r.ThroughputMbPerSec.Value:F2} MB/s" : "-",
+                    has ? Formatting.FormatMs(Statistics.Min(sorted)) : "-",
+                    has ? Formatting.FormatMs(Statistics.Median(sorted)) : "-",
+                    has ? Formatting.FormatMs(Statistics.P95(sorted)) : "-",
+                    has ? Formatting.FormatMs(Statistics.P99(sorted)) : "-",
+                    has ? Formatting.FormatMs(Statistics.Max(sorted)) : "-",
+                    has ? Formatting.FormatOps(Statistics.OpsPerSec(sorted)) : "-",
+                    Formatting.FormatThroughput(r.ThroughputMbPerSec),
                     status
                 );
             }
@@ -117,9 +117,9 @@ public static class SpectreRenderer
         if (allLatencies.Count > 0)
         {
             allLatencies.Sort();
-            grid.AddRow("[bold]Global Median:[/]", $"[bold]{FormatMs(Statistics.Median(allLatencies))}[/]");
-            grid.AddRow("[bold]Global P95:[/]", $"[bold]{FormatMs(Statistics.P95(allLatencies))}[/]");
-            grid.AddRow("[bold]Global P99:[/]", $"[bold]{FormatMs(Statistics.P99(allLatencies))}[/]");
+            grid.AddRow("[bold]Global Median:[/]", $"[bold]{Formatting.FormatMs(Statistics.Median(allLatencies))}[/]");
+            grid.AddRow("[bold]Global P95:[/]", $"[bold]{Formatting.FormatMs(Statistics.P95(allLatencies))}[/]");
+            grid.AddRow("[bold]Global P99:[/]", $"[bold]{Formatting.FormatMs(Statistics.P99(allLatencies))}[/]");
         }
 
         grid.AddRow("[bold]Completed:[/]", $"[bold]{DateTime.UtcNow:u}[/]");
@@ -139,18 +139,4 @@ public static class SpectreRenderer
             }
         }
     }
-
-    private static string FormatMs(double ms) => ms switch
-    {
-        < 1 => $"{ms:F3} ms",
-        < 1000 => $"{ms:F1} ms",
-        _ => $"{ms / 1000.0:F2} s"
-    };
-
-    private static string FormatOps(double ops) => ops switch
-    {
-        >= 1000 => $"{ops:F0}",
-        >= 1 => $"{ops:F1}",
-        _ => $"{ops:F3}"
-    };
 }
