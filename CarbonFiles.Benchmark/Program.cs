@@ -29,8 +29,13 @@ internal sealed class BenchmarkSettings : CommandSettings
     [DefaultValue(false)]
     public bool SkipSignalR { get; init; }
 
+    [CommandOption("--max-upload-mb <MB>")]
+    [Description("Max file size in MB for large transfer benchmarks (default: 100)")]
+    [DefaultValue(100)]
+    public int MaxUploadMb { get; init; } = 100;
+
     [CommandOption("--category <CATEGORY>")]
-    [Description("Run only a specific category (e.g. Health, Buckets, Files)")]
+    [Description("Run only a specific category (e.g. Health, Buckets, Files, Large Transfers)")]
     public string? Category { get; init; }
 }
 
@@ -46,6 +51,7 @@ internal sealed class BenchmarkCommand : AsyncCommand<BenchmarkSettings>
         ("Short URLs", ShortUrlBenchmarks.RunAsync),
         ("Dashboard", DashboardBenchmarks.RunAsync),
         ("Stats", StatsBenchmarks.RunAsync),
+        ("Large Transfers", LargeTransferBenchmarks.RunAsync),
         ("Concurrency", ConcurrencyBenchmarks.RunAsync),
         ("SignalR Events", SignalRBenchmarks.RunAsync),
     ];
@@ -64,6 +70,7 @@ internal sealed class BenchmarkCommand : AsyncCommand<BenchmarkSettings>
             BaseUrl = url,
             AdminKey = settings.Key,
             Iterations = settings.Iterations,
+            MaxUploadMb = settings.MaxUploadMb,
         };
 
         // Connectivity check

@@ -24,6 +24,12 @@ dotnet run -- --url https://your-server.com --key your-key --category Files
 
 # Skip SignalR (useful if the server is behind a reverse proxy that doesn't support WebSockets)
 dotnet run -- --url https://your-server.com --key your-key --skip-signalr
+
+# Test large file transfers up to 500 MB
+dotnet run -- --url https://your-server.com --key your-key --max-upload-mb 500
+
+# Test large transfers only
+dotnet run -- --url https://your-server.com --key your-key --category "Large Transfers" --max-upload-mb 250
 ```
 
 ## Benchmark Categories
@@ -33,6 +39,7 @@ dotnet run -- --url https://your-server.com --key your-key --skip-signalr
 | **Health** | Health check | Baseline API latency |
 | **Buckets** | Create, Get, List, List (paginated), Update, Summary, Download ZIP, Delete | Full bucket lifecycle |
 | **Files** | Upload 1KB / 1MB / 10MB, Stream upload, Download, Metadata, Verify, List, ListTree, ListDirectory, Patch, Append, Delete | Upload/download throughput and file management |
+| **Large Transfers** | Upload, Download, and Stream upload at each size tier (1, 10, 50, 100, 250, 500, 1024 MB) up to `--max-upload-mb` | Sustained throughput for large files |
 | **API Keys** | Create, List, Get Usage, Revoke | Key management overhead |
 | **Upload Tokens** | Create token, Upload with token | Token-scoped upload flow |
 | **Short URLs** | Resolve, Delete | Short URL redirect performance |
@@ -71,6 +78,7 @@ CarbonFiles.Benchmark/
 │   ├── ShortUrlBenchmarks.cs
 │   ├── DashboardBenchmarks.cs
 │   ├── StatsBenchmarks.cs
+│   ├── LargeTransferBenchmarks.cs
 │   ├── ConcurrencyBenchmarks.cs
 │   └── SignalRBenchmarks.cs
 └── Rendering/

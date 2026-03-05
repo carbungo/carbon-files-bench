@@ -8,6 +8,7 @@ public sealed class BenchmarkContext
     public required string BaseUrl { get; init; }
     public required string AdminKey { get; init; }
     public int Iterations { get; init; } = 5;
+    public int MaxUploadMb { get; init; } = 100;
     public List<BenchmarkResult> Results { get; } = [];
 
     public async Task<BenchmarkResult> MeasureAsync(

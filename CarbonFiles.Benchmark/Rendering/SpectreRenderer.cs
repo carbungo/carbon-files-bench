@@ -14,6 +14,7 @@ public static class SpectreRenderer
         ["Short URLs"] = Color.Magenta1,
         ["Dashboard"] = Color.Purple,
         ["Stats"] = Color.Teal,
+        ["Large Transfers"] = Color.Orange3,
         ["Concurrency"] = Color.Red,
         ["SignalR Events"] = Color.DeepSkyBlue1,
     };
